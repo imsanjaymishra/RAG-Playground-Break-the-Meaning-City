@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAG Playground · Break the Meaning City | Sanjay Mishra</title>
+<meta name="description" content="Ask a question and watch retrieval happen on a real embedding map. Switch meaning, keyword and hybrid search, move k, toggle the reranker, and break RAG on purpose. Every score is real.">
+<meta name="author" content="Sanjay Mishra">
+<meta property="og:type" content="website">
+<meta property="og:title" content="RAG Playground · Break the Meaning City">
+<meta property="og:description" content="Play with a real RAG system: ask, search, rerank, and break it on purpose. From age 5 to pro.">
+<meta property="og:image" content="preview.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="RAG Playground · Break the Meaning City">
+<meta name="twitter:description" content="Play with a real RAG system: ask, search, rerank, and break it on purpose. From age 5 to pro.">
+<meta name="twitter:image" content="preview.jpg">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏙️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* papercraft table: kraft board, cardstock cards, red yarn for retrieval */
+  --table: #e9dcc8;
+  --card: #fbf6ea;
+  --ink: #2a2733;
+  --muted: #6d655c;
+  --yarn: #c8392b;
+  --good: #2f8f4e;
+  --line: #d6c7b0;
+  --map: #dbe6cf;
+  --font-display: "Patrick Hand", "Comic Sans MS", cursive;
+  --font-body: "Atkinson Hyperlegible", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --table: #24201c; --card: #322c26; --ink: #f1eadf; --muted: #b3a898; --yarn: #ef6a57;
+    --good: #5cc27d; --line: #4a4138; --map: #2c3527; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --table: #24201c; --card: #322c26; --ink: #f1eadf; --muted: #b3a898; --yarn: #ef6a57;
+  --good: #5cc27d; --line: #4a4138; --map: #2c3527; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--table); color: var(--ink); font: 16px/1.5 var(--font-body); }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 20px 16px 40px; display: grid; gap: 16px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; }
+h1 { font: 400 2.4rem/1.1 var(--font-display); margin: 0; text-wrap: balance; }
+.sub { color: var(--muted); margin: 0; max-width: 62ch; }
+.panel { background: var(--card); border: 1.5px solid var(--line); border-radius: 6px; padding: 14px 16px;
+  box-shadow: 0 2px 0 var(--line); }
+h2 { font: 400 1.35rem/1.2 var(--font-display); margin: 0 0 8px; }
+.controls { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); align-items: start; }
+.qs { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: inherit; font-size: .9rem; border: 1.5px solid var(--line); background: var(--table); color: var(--ink);
+  border-radius: 999px; padding: 4px 11px; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--card); border-color: var(--ink); }
+.chip:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid var(--yarn); outline-offset: 2px; }
+.seg { display: inline-flex; border: 1.5px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { font: inherit; font-size: .92rem; border: 0; background: transparent; color: var(--ink); padding: 6px 12px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--card); }
+label.row { display: flex; align-items: center; gap: 10px; font-size: .95rem; }
+input[type=range] { flex: 1; accent-color: var(--yarn); }
+.k { font: 500 1.1rem var(--font-mono); min-width: 2ch; }
+.main { display: grid; gap: 16px; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+@media (max-width: 820px) { .main { grid-template-columns: 1fr; } }
+svg { width: 100%; height: auto; display: block; }
+.verdict { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 6px; border: 2px solid; font-weight: 700; }
+.verdict.ok { border-color: var(--good); color: var(--good); }
+.verdict.bad { border-color: var(--yarn); color: var(--yarn); }
+.verdict small { display: block; font-weight: 400; color: var(--ink); }
+ol.hits { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
+ol.hits li { display: grid; grid-template-columns: 1.6rem 1fr auto; gap: 8px; align-items: center; padding: 7px 10px;
+  border: 1.5px solid var(--line); border-radius: 4px; background: var(--table); }
+ol.hits li.gold { border-color: var(--good); box-shadow: inset 4px 0 0 var(--good); }
+.rank { font: 500 .85rem var(--font-mono); color: var(--muted); }
+.score { font: 500 .85rem var(--font-mono); font-variant-numeric: tabular-nums; }
+.sandwich { font: .82rem/1.45 var(--font-mono); white-space: pre-wrap; background: var(--table); border: 1.5px dashed var(--line);
+  border-radius: 4px; padding: 10px 12px; margin: 0; overflow-x: auto; }
+.row-between { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.btn { font: inherit; font-size: .9rem; border: 1.5px solid var(--ink); background: transparent; color: var(--ink); border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+.btn.warn[aria-pressed="true"] { background: var(--yarn); border-color: var(--yarn); color: #fff; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: .8rem; color: var(--muted); margin-top: 6px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+footer { color: var(--muted); font-size: .85rem; display: grid; gap: 4px; }
+.kid-only, .pro-only { display: none; }
+body.kid .kid-only, body.pro .pro-only { display: revert; }
+@media (prefers-reduced-motion: no-preference) { .yarn { transition: opacity .3s; } }
+</style>
+</head>
+<body class="kid">
+<div class="wrap">
+  <header>
+    <div>
+      <h1>RAG Playground</h1>
+      <p class="sub">The real Meaning City from the video. Ask the family notebook a question, choose how the librarian searches, and see whether the answer makes it into the cards.</p>
+    </div>
+    <div class="seg" role="group" aria-label="Explanation level">
+      <button id="lvl-kid" aria-pressed="true">Kid words</button>
+      <button id="lvl-pro" aria-pressed="false">Pro words</button>
+    </div>
+  </header>
+
+  <section class="panel controls" aria-label="Controls">
+    <div style="grid-column: 1 / -1">
+      <h2>1 · Ask a question</h2>
+      <div class="qs" id="qs"></div>
+    </div>
+    <div>
+      <h2>2 · How to search</h2>
+      <div class="seg" role="group" aria-label="Search method" id="modes">
+        <button data-mode="dense" aria-pressed="true">Meaning</button>
+        <button data-mode="bm25" aria-pressed="false">Keywords</button>
+        <button data-mode="hybrid" aria-pressed="false">Both</button>
+      </div>
+      <p class="sub" style="font-size:.85rem;margin-top:6px" id="mode-note"></p>
+    </div>
+    <div>
+      <h2>3 · How many cards</h2>
+      <label class="row" for="k">k <input type="range" id="k" min="1" max="10" value="3"><span class="k" id="kval">3</span></label>
+      <label class="row" for="rr" style="margin-top:8px"><input type="checkbox" id="rr"> Ask the judge to re-sort (reranker)</label>
+    </div>
+    <div>
+      <h2>4 · Break it</h2>
+      <button class="btn warn" id="break" aria-pressed="false">Tear out the right card</button>
+      <p class="sub" style="font-size:.85rem;margin-top:6px">Removes the note that really answers the question, so you can see what the librarian brings instead.</p>
+    </div>
+  </section>
+
+  <div class="main">
+    <section class="panel" aria-label="Meaning City map">
+      <div class="row-between"><h2>Meaning City</h2><span class="sub" style="font-size:.85rem" id="maplabel"></span></div>
+      <svg id="map" viewBox="-11 -11 22 22" role="img" aria-label="Map of the 32 notes placed by meaning, with the question pin and strings to the chosen cards"></svg>
+      <div class="legend" id="legend"></div>
+    </section>
+    <section class="panel" aria-label="What the librarian brings">
+      <h2>What slides under the door</h2>
+      <div id="verdict"></div>
+      <ol class="hits" id="hits"></ol>
+      <div class="pro-only" style="margin-top:14px">
+        <div class="row-between"><h2 style="margin:0">The prompt sandwich</h2><button class="btn" id="copy">Copy prompt</button></div>
+        <pre class="sandwich" id="sandwich"></pre>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <span>Every score here was measured: embeddings from <b>bge-small-en-v1.5</b> (384 numbers per note), keyword scores from BM25, re-sorting from the <b>ms-marco-MiniLM-L-6-v2</b> cross-encoder. The map flattens 384 numbers to 2 with PCA, so houses that look close are only roughly close.</span>
+    <span>This page runs no AI model; it shows the retrieval step that decides what an AI gets to read.</span>
+    <span>From “RAG: the friend who learned to look things up” by Sanjay Mishra.</span>
+  </footer>
+</div>
+
+<script id="data" type="application/json">{"model": "BAAI/bge-small-en-v1.5", "reranker": "Xenova/ms-marco-MiniLM-L-6-v2", "dims": 384, "notes": [{"text": "Biscuit ate a bowl of carrots for breakfast this morning.", "group": "food", "xy": [5.841, -3.394]}, {"text": "Today Biscuit chewed and swallowed one of Dad's socks.", "group": "food", "xy": [6.195, -3.775]}, {"text": "Biscuit's dinner is two scoops of kibble at six o'clock.", "group": "food", "xy": [5.276, -1.305]}, {"text": "Biscuit is not allowed to eat chocolate or grapes.", "group": "food", "xy": [6.892, -2.102]}, {"text": "Biscuit loves the long walk around the lake on Sundays.", "group": "play", "xy": [4.115, 1.862]}, {"text": "Biscuit's favourite toy is a squeaky yellow duck.", "group": "play", "xy": [9.0, 0.925]}, {"text": "Biscuit barks at the postman every single day.", "group": "play", "xy": [7.455, 1.927]}, {"text": "Biscuit sleeps on the blue rug next to the sofa.", "group": "play", "xy": [8.275, -1.302]}, {"text": "Biscuit's next vet appointment is on Friday at ten.", "group": "vet", "xy": [4.794, 1.283]}, {"text": "The vet said Biscuit should lose a little weight.", "group": "vet", "xy": [7.69, -3.275]}, {"text": "Maya's spelling test is on Thursday.", "group": "school", "xy": [-2.033, 5.638]}, {"text": "Leo needs to bring a cardboard box to school for art.", "group": "school", "xy": [-1.639, 6.449]}, {"text": "The school trip to the museum costs five pounds.", "group": "school", "xy": [-1.67, 7.339]}, {"text": "Maya got a gold star for her drawing of a whale.", "group": "school", "xy": [0.257, 6.003]}, {"text": "We are out of milk and eggs.", "group": "kitchen", "xy": [-0.976, -3.113]}, {"text": "Grandma's soup recipe needs three carrots and an onion.", "group": "kitchen", "xy": [-3.261, -5.005]}, {"text": "Pizza night is every Friday.", "group": "kitchen", "xy": [-2.129, 1.203]}, {"text": "The oven makes a strange noise when it gets hot.", "group": "kitchen", "xy": [-1.933, -3.554]}, {"text": "The tomatoes in the garden are finally turning red.", "group": "garden", "xy": [-6.676, -6.581]}, {"text": "Someone keeps leaving the garden gate open.", "group": "garden", "xy": [-2.825, -3.196]}, {"text": "Plant the sunflower seeds in April.", "group": "garden", "xy": [-4.228, -2.614]}, {"text": "The grass needs cutting before the weekend.", "group": "garden", "xy": [-5.36, -2.824]}, {"text": "The bathroom tap is dripping again.", "group": "jobs", "xy": [-3.595, -3.778]}, {"text": "Call the plumber about the kitchen sink.", "group": "jobs", "xy": [-5.251, -4.877]}, {"text": "The car needs new tyres before winter.", "group": "jobs", "xy": [-4.807, -3.159]}, {"text": "The internet password is on the fridge.", "group": "jobs", "xy": [-1.375, -1.924]}, {"text": "Aunt Priya visits next Saturday for lunch.", "group": "family", "xy": [-2.474, 0.477]}, {"text": "Mum's birthday is on the twelfth of March.", "group": "family", "xy": [-2.675, 0.789]}, {"text": "Movie night: everyone votes, Leo always picks dinosaurs.", "group": "family", "xy": [0.922, 7.403]}, {"text": "Pack the swimming bags on Wednesday morning.", "group": "family", "xy": [-4.384, 2.065]}, {"text": "School bus 42 leaves at 8:10 from the corner.", "group": "buses", "xy": [-5.227, 5.281]}, {"text": "School bus 24 leaves at 8:40 from the library.", "group": "buses", "xy": [-4.192, 7.138]}], "questions": [{"q": "What did Biscuit eat today?", "gold": [0, 1], "xy": [8.048, -0.876], "cos": [0.7756, 0.6942, 0.6338, 0.6134, 0.6012, 0.607, 0.5666, 0.5903, 0.6219, 0.6784, 0.4398, 0.3834, 0.4401, 0.3605, 0.525, 0.4586, 0.4697, 0.3982, 0.312, 0.378, 0.4305, 0.3715, 0.3983, 0.3687, 0.3955, 0.4141, 0.4976, 0.4318, 0.3419, 0.4526, 0.3707, 0.4104], "bm25": [1.0726, 3.7165, 0.9448, 4.2554, 1.0726, 1.0726, 1.1503, 1.1503, 1.0726, 1.0726, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "rerank": {"0": 6.948, "1": 6.252, "9": -3.408, "2": 2.639, "8": -5.557, "3": 3.491, "5": -2.195, "4": -3.914, "7": -4.908, "6": -2.952}}, {"q": "When is the dog's next check-up?", "gold": [8], "xy": [0.654, -0.378], "cos": [0.4378, 0.4523, 0.4333, 0.3132, 0.447, 0.4791, 0.4414, 0.4676, 0.6768, 0.5488, 0.5081, 0.4201, 0.371, 0.3888, 0.4356, 0.4029, 0.4195, 0.4278, 0.339, 0.4455, 0.4753, 0.5158, 0.4815, 0.5043, 0.5332, 0.4302, 0.5164, 0.4933, 0.3028, 0.4983, 0.3372, 0.3709], "bm25": [0.0, 1.2999, 1.2225, 0.0, 0.0, 1.3877, 0.0, 2.2539, 3.4893, 0.0, 1.6046, 0.0, 0.0, 0.0, 0.0, 1.2999, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.2539, 1.6046, 0.0, 0.0, 0.0, 0.0], "rerank": {"8": -0.742, "9": -11.298, "24": -11.381, "26": -10.445, "21": -11.266, "10": -10.36, "23": -11.449, "29": -11.068, "27": -10.432, "22": -11.349}}, {"q": "What food is dangerous for Biscuit?", "gold": [3], "xy": [7.635, -3.0], "cos": [0.6496, 0.6472, 0.5778, 0.7115, 0.5052, 0.5867, 0.5429, 0.5261, 0.5367, 0.6606, 0.3726, 0.3899, 0.3437, 0.2818, 0.4932, 0.4564, 0.4066, 0.4717, 0.3224, 0.3983, 0.4199, 0.3875, 0.3571, 0.3703, 0.3941, 0.4247, 0.3974, 0.3823, 0.3152, 0.3535, 0.3191, 0.3202], "bm25": [1.0726, 1.0047, 0.9448, 1.1503, 1.0726, 1.0726, 1.1503, 1.1503, 1.0726, 1.0726, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "rerank": {"3": 3.583, "9": -4.291, "0": 1.303, "1": -4.315, "5": -3.387, "2": -0.992, "6": -6.401, "8": -7.381, "7": -6.987, "4": -6.474}}, {"q": "Where does Biscuit sleep?", "gold": [7], "xy": [7.584, -0.388], "cos": [0.6364, 0.5823, 0.5751, 0.5492, 0.6066, 0.5783, 0.5627, 0.7802, 0.5943, 0.6496, 0.3969, 0.3602, 0.3752, 0.2966, 0.5064, 0.3582, 0.4275, 0.4824, 0.2379, 0.4699, 0.3805, 0.3833, 0.4, 0.4071, 0.3834, 0.4531, 0.4373, 0.4066, 0.3679, 0.4546, 0.4249, 0.4551], "bm25": [1.0726, 1.0047, 0.9448, 1.1503, 1.0726, 1.0726, 1.1503, 1.1503, 1.0726, 1.0726, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "rerank": {"7": 7.883, "9": -6.052, "0": -4.575, "4": -1.8, "8": -5.07, "1": -6.609, "5": -4.558, "2": -2.17, "6": -0.373, "3": -5.776}}, {"q": "When is Maya's test?", "gold": [10], "xy": [-1.98, 3.198], "cos": [0.3686, 0.367, 0.3786, 0.3377, 0.3269, 0.3659, 0.3451, 0.2981, 0.4581, 0.4142, 0.7858, 0.3979, 0.394, 0.5514, 0.3724, 0.3728, 0.4272, 0.4523, 0.3429, 0.3372, 0.4662, 0.4054, 0.427, 0.4802, 0.4372, 0.4205, 0.4254, 0.459, 0.3509, 0.4362, 0.3501, 0.3832], "bm25": [0.0, 1.2999, 1.2225, 0.0, 0.0, 1.3877, 0.0, 0.0, 1.3877, 0.0, 7.7469, 0.0, 0.0, 2.4167, 0.0, 1.2999, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.6046, 0.0, 0.0, 0.0, 0.0], "rerank": {"10": 7.316, "13": -5.523, "23": -11.399, "20": -10.952, "27": -9.272, "8": -11.017, "17": -11.349, "24": -11.329, "29": -11.121, "16": -11.215}}, {"q": "What do we need to buy at the shop?", "gold": [14], "xy": [-2.475, -0.081], "cos": [0.4072, 0.3718, 0.3558, 0.3249, 0.4033, 0.3582, 0.3074, 0.3488, 0.4373, 0.4015, 0.4126, 0.4642, 0.4847, 0.3118, 0.4868, 0.4699, 0.4234, 0.3926, 0.3307, 0.4029, 0.4793, 0.475, 0.3949, 0.544, 0.4825, 0.4696, 0.5028, 0.4339, 0.3043, 0.5205, 0.3265, 0.3469], "bm25": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3.6316, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "rerank": {"23": -10.999, "29": -11.002, "26": -11.228, "14": -10.066, "12": -11.14, "24": -9.22, "20": -11.096, "21": -10.248, "15": -9.162, "25": -11.228}}, {"q": "What's for dinner on Friday?", "gold": [16], "xy": [-1.957, 0.982], "cos": [0.5057, 0.3883, 0.5173, 0.388, 0.4756, 0.3036, 0.3458, 0.3541, 0.5213, 0.3943, 0.5099, 0.4015, 0.3964, 0.2839, 0.4912, 0.497, 0.7228, 0.419, 0.3414, 0.3584, 0.4943, 0.5731, 0.3579, 0.4771, 0.4137, 0.4075, 0.5994, 0.4809, 0.4079, 0.5413, 0.3933, 0.4401], "bm25": [0.0, 1.2999, 3.7729, 0.0, 0.0, 1.3877, 0.0, 0.0, 3.8044, 0.0, 1.6046, 0.0, 0.0, 0.0, 0.0, 1.2999, 3.0314, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.6046, 0.0, 0.0, 0.0, 0.0], "rerank": {"16": 1.473, "26": -5.158, "21": -9.646, "29": -10.139, "8": -5.568, "2": -2.891, "10": -9.842, "0": -8.229, "15": -10.121, "20": -11.014}}, {"q": "What is wrong with the bathroom?", "gold": [22], "xy": [-1.734, -3.081], "cos": [0.3589, 0.5105, 0.3365, 0.4544, 0.304, 0.3491, 0.3197, 0.4197, 0.3462, 0.4089, 0.3666, 0.3959, 0.3335, 0.2981, 0.5326, 0.3443, 0.431, 0.5648, 0.3571, 0.4987, 0.3349, 0.3949, 0.6875, 0.6031, 0.4446, 0.5161, 0.3822, 0.3802, 0.2764, 0.3919, 0.3972, 0.3964], "bm25": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3.6316, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "rerank": {"22": -5.364, "23": -11.224, "17": -11.074, "14": -10.895, "25": -11.264, "1": -11.293, "19": -11.171, "3": -11.016, "24": -11.29, "16": -11.253}}, {"q": "Where can I find the Wi-Fi code?", "gold": [25], "xy": [-3.834, -0.102], "cos": [0.3483, 0.3128, 0.3168, 0.2408, 0.3171, 0.259, 0.2908, 0.2788, 0.3203, 0.2828, 0.3958, 0.3238, 0.2881, 0.2267, 0.3859, 0.37, 0.3935, 0.3769, 0.2872, 0.3931, 0.3911, 0.4003, 0.3864, 0.5252, 0.4047, 0.5331, 0.3799, 0.3967, 0.2185, 0.4309, 0.4202, 0.4596], "bm25": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "rerank": {"25": -10.33, "23": -11.373, "31": -11.338, "29": -11.341, "30": -11.315, "24": -11.382, "21": -11.358, "27": -11.299, "10": -11.378, "16": -11.331}}, {"q": "Who is coming for lunch on Saturday?", "gold": [26], "xy": [-2.313, 1.099], "cos": [0.5029, 0.4357, 0.5239, 0.4, 0.5011, 0.368, 0.4126, 0.3786, 0.5465, 0.4246, 0.5016, 0.4377, 0.417, 0.2936, 0.5466, 0.5052, 0.6286, 0.452, 0.352, 0.4659, 0.4952, 0.5879, 0.4438, 0.5164, 0.4216, 0.5068, 0.7308, 0.5082, 0.4155, 0.6147, 0.5066, 0.5203], "bm25": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 6.2101, 0.0, 0.0, 0.0, 0.0, 0.0], "rerank": {"26": 5.197, "16": -7.179, "29": -10.143, "21": -9.946, "14": -10.603, "8": -8.601, "2": -9.124, "31": -10.923, "23": -11.224, "27": -10.986}}, {"q": "When does bus 24 leave?", "gold": [31], "xy": [-3.362, 2.947], "cos": [0.3686, 0.3717, 0.3851, 0.3946, 0.4477, 0.3466, 0.3947, 0.345, 0.4937, 0.392, 0.4887, 0.3991, 0.4043, 0.2703, 0.4668, 0.3624, 0.436, 0.3959, 0.3158, 0.5587, 0.4276, 0.4509, 0.4774, 0.4646, 0.511, 0.433, 0.4993, 0.4988, 0.2715, 0.5234, 0.6261, 0.7424], "bm25": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.4167, 5.3119], "rerank": {"31": 7.191, "30": -1.544, "19": -11.315, "29": -11.295, "24": -11.349, "26": -11.359, "27": -10.829, "8": -11.312, "10": -11.38, "22": -11.367}}, {"q": "What does Leo need for art class?", "gold": [11], "xy": [-2.346, 5.276], "cos": [0.3539, 0.3013, 0.3323, 0.3465, 0.3574, 0.2985, 0.3018, 0.2989, 0.4158, 0.3917, 0.4604, 0.7744, 0.4764, 0.4498, 0.3621, 0.4015, 0.3769, 0.3956, 0.2707, 0.361, 0.4334, 0.4147, 0.3324, 0.4349, 0.464, 0.3535, 0.4049, 0.4332, 0.4435, 0.4084, 0.3794, 0.4005], "bm25": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 5.3119, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.2637, 0.0, 0.0, 0.0], "rerank": {"11": 7.636, "12": -11.358, "24": -11.361, "10": -11.437, "13": -11.3, "28": -9.785, "23": -11.419, "20": -11.363, "27": -11.371, "8": -11.447}}, {"q": "What is Biscuit's favourite colour?", "gold": [], "xy": [6.459, -0.355], "cos": [0.6229, 0.5196, 0.5318, 0.5169, 0.565, 0.6611, 0.5324, 0.5468, 0.5417, 0.5544, 0.3837, 0.3601, 0.3521, 0.3566, 0.3864, 0.3899, 0.395, 0.4241, 0.3574, 0.378, 0.404, 0.335, 0.3934, 0.3813, 0.3798, 0.3973, 0.4059, 0.4411, 0.3814, 0.3446, 0.3807, 0.3359], "bm25": [1.0726, 2.3045, 2.1673, 1.1503, 1.0726, 5.3555, 1.1503, 1.1503, 2.4603, 1.0726, 1.6046, 0.0, 0.0, 0.0, 0.0, 1.2999, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.6046, 0.0, 0.0, 0.0, 0.0], "rerank": {"5": 7.519, "0": -6.148, "4": -5.936, "9": -7.592, "7": 1.08, "8": -6.997, "6": -6.921, "2": -6.251, "1": -7.196, "3": -4.961}}, {"q": "Where is the spare key to the shed?", "gold": [], "xy": [-2.867, 0.007], "cos": [0.3397, 0.4085, 0.3606, 0.3329, 0.4344, 0.383, 0.3449, 0.3786, 0.42, 0.3952, 0.4113, 0.4448, 0.4443, 0.3254, 0.4698, 0.4491, 0.4017, 0.4742, 0.3194, 0.5654, 0.3983, 0.4978, 0.4977, 0.5417, 0.4865, 0.5637, 0.4437, 0.4522, 0.3013, 0.4803, 0.4377, 0.4658], "bm25": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "rerank": {"19": -11.026, "25": -11.128, "23": -11.35, "21": -11.41, "22": -11.35, "24": -11.395, "29": -11.388, "17": -11.334, "14": -11.298, "31": -11.379}}, {"q": "Does the oven work properly?", "gold": [17], "xy": [-2.178, -2.712], "cos": [0.434, 0.3812, 0.4615, 0.366, 0.3568, 0.3376, 0.3403, 0.3927, 0.3531, 0.4282, 0.4115, 0.4046, 0.349, 0.3764, 0.4818, 0.4681, 0.5235, 0.7487, 0.4156, 0.4328, 0.4309, 0.4468, 0.5081, 0.5514, 0.465, 0.5042, 0.3766, 0.4461, 0.3472, 0.4095, 0.351, 0.3361], "bm25": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.8952, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "rerank": {"17": -1.152, "23": -11.197, "16": -11.309, "22": -11.198, "25": -11.315, "14": -11.169, "15": -11.365, "24": -11.316, "2": -11.368, "21": -11.277}}, {"q": "When is Mum's birthday?", "gold": [27], "xy": [-1.765, 1.159], "cos": [0.4095, 0.4083, 0.4401, 0.2889, 0.3832, 0.3589, 0.392, 0.3366, 0.468, 0.3495, 0.4593, 0.3279, 0.3922, 0.3837, 0.4197, 0.4274, 0.4298, 0.4138, 0.3321, 0.3964, 0.4595, 0.3938, 0.3733, 0.444, 0.38, 0.439, 0.5186, 0.857, 0.2947, 0.4448, 0.4052, 0.3837], "bm25": [0.0, 1.2999, 1.2225, 0.0, 0.0, 1.3877, 0.0, 0.0, 1.3877, 0.0, 1.6046, 0.0, 0.0, 0.0, 0.0, 1.2999, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 8.3001, 0.0, 0.0, 0.0, 0.0], "rerank": {"27": 9.982, "26": -11.195, "8": -11.197, "20": -10.817, "10": -11.231, "29": -11.209, "23": -11.327, "2": -11.262, "25": -11.291, "16": -11.268}}]}</script>
+<script>
+const D = JSON.parse(document.getElementById("data").textContent);
+const GROUP = { food: "#f39a4d", play: "#f4cf5c", vet: "#6cc1b7", school: "#7b9ee8", kitchen: "#ef8e9b",
+  garden: "#8acb74", jobs: "#a99bd0", family: "#f8b98f", buses: "#e2d46a" };
+const GROUP_NAME = { food: "dog food", play: "dog play", vet: "vet", school: "school", kitchen: "kitchen",
+  garden: "garden", jobs: "house jobs", family: "family", buses: "buses" };
+const S = { q: 0, mode: "dense", k: 3, rr: false, broken: false, pro: false };
+const $ = id => document.getElementById(id);
+
+function rank(q) {
+  const alive = i => !(S.broken && q.gold.includes(i));
+  const ids = D.notes.map((_, i) => i).filter(alive);
+  const by = arr => ids.slice().sort((a, b) => arr[b] - arr[a]);
+  let order, score;
+  if (S.mode === "dense") { order = by(q.cos); score = i => q.cos[i].toFixed(2); }
+  else if (S.mode === "bm25") { order = by(q.bm25); score = i => q.bm25[i].toFixed(1); }
+  else {
+    const d = by(q.cos).slice(0, 10), b = by(q.bm25).slice(0, 10), f = {};
+    [d, b].forEach(r => r.forEach((i, p) => { f[i] = (f[i] || 0) + 1 / (60 + p + 1); }));
+    order = Object.keys(f).map(Number).sort((x, y) => f[y] - f[x]);
+    score = i => (f[i] * 100).toFixed(2);
+  }
+  if (S.rr) {
+    const cand = by(q.cos).slice(0, 10).filter(i => q.rerank[i] !== undefined);
+    order = cand.sort((a, b) => q.rerank[b] - q.rerank[a]);
+    score = i => q.rerank[i].toFixed(1);
+  }
+  return { order, score };
+}
+
+function words(kid, pro) { return S.pro ? pro : kid; }
+
+function render() {
+  const q = D.questions[S.q];
+  const { order, score } = rank(q);
+  const top = order.slice(0, S.k);
+  document.body.className = S.pro ? "pro" : "kid";
+  $("kval").textContent = S.k;
+  $("mode-note").textContent = S.rr ? words("The judge reads the question and each of the 10 nearest cards together, then re-sorts them.",
+      "Cross-encoder reranker over the dense top-10; scores are logits, on a different scale.") :
+    { dense: words("Find cards that mean the same thing, even with different words.", "Dense retrieval: cosine similarity of bge-small embeddings."),
+      bm25: words("Find cards that share the same words.", "Sparse retrieval: BM25 over tokens (common words removed)."),
+      hybrid: words("Ask both searchers, then merge their lists.", "Reciprocal rank fusion (k=60) of dense and BM25 top-10.") }[S.mode];
+  $("maplabel").textContent = words("houses that mean similar things live close together", "PCA of 384-d embeddings · pin = query");
+
+  // map
+  const svg = $("map");
+  let h = `<rect x="-10.6" y="-10.6" width="21.2" height="21.2" rx=".4" fill="var(--map)" stroke="var(--line)" stroke-width=".08"/>`;
+  const P = p => [p[0], -p[1]];
+  top.forEach(i => {
+    const [x, y] = P(D.notes[i].xy), [qx, qy] = P(q.xy);
+    h += `<path class="yarn" d="M${qx} ${qy} Q ${(qx + x) / 2} ${(qy + y) / 2 - 1.6} ${x} ${y}" fill="none" stroke="var(--yarn)" stroke-width=".09"/>`;
+  });
+  D.notes.forEach((n, i) => {
+    const [x, y] = P(n.xy), gone = S.broken && q.gold.includes(i), hit = top.includes(i);
+    const c = GROUP[n.group];
+    h += `<g transform="translate(${x} ${y})" opacity="${gone ? .18 : 1}"><title>${n.text}</title>
+      <rect x="-.42" y="-.3" width=".84" height=".62" fill="${c}" stroke="${hit ? "var(--yarn)" : "rgba(0,0,0,.25)"}" stroke-width="${hit ? .11 : .04}"/>
+      <path d="M-.5 -.3 L0 -.72 L.5 -.3 Z" fill="${c}" stroke="rgba(0,0,0,.3)" stroke-width=".04"/></g>`;
+    if (hit) h += `<text x="${x}" y="${y + 1.0}" font-size=".62" text-anchor="middle" fill="var(--ink)" font-family="JetBrains Mono, monospace">${top.indexOf(i) + 1}</text>`;
+  });
+  const [qx, qy] = P(q.xy);
+  h += `<g transform="translate(${qx} ${qy})"><line x1="0" y1="0" x2="0" y2=".6" stroke="#888" stroke-width=".07"/><circle r=".34" fill="var(--yarn)"/></g>`;
+  svg.innerHTML = h;
+  $("legend").innerHTML = Object.keys(GROUP).map(g => `<span><i style="background:${GROUP[g]}"></i>${GROUP_NAME[g]}</span>`).join("");
+
+  // verdict
+  const found = q.gold.filter(g => top.includes(g));
+  let v;
+  if (!q.gold.length) {
+    v = `<div class="verdict bad">✗ The notes don't have this answer.<small>${words(
+      "The librarian still brings the closest cards. A careless friend would guess from them; a careful one says “I don't know”.",
+      "Retrieval always returns k chunks. Without an abstain rule, the model will answer from irrelevant context.")}</small></div>`;
+  } else if (found.length) {
+    v = `<div class="verdict ok">✓ The answer is in the cards.<small>${words(
+      `The right card came in at number ${top.indexOf(found[0]) + 1}. Now the friend can read it before answering.`,
+      `Hit at rank ${top.indexOf(found[0]) + 1} → recall@${S.k} = 1 for this query.`)}</small></div>`;
+  } else {
+    v = `<div class="verdict bad">✗ The answer is not in the cards.<small>${words(
+      S.broken ? "You tore out the right card, so nothing here answers the question. A careful friend says “I don't know”."
+        : "The right card is in the notebook, but the librarian didn't bring it. Try more cards, another search, or the judge.",
+      S.broken ? "Gold chunk removed from the index: the model must abstain or it will hallucinate."
+        : `Miss: recall@${S.k} = 0. Try raising k, hybrid search, or reranking.`)}</small></div>`;
+  }
+  $("verdict").innerHTML = v;
+  $("hits").innerHTML = top.map((i, r) => `<li class="${q.gold.includes(i) ? "gold" : ""}"><span class="rank">${r + 1}</span>
+    <span>${D.notes[i].text}</span><span class="score" title="${S.rr ? "reranker score" : S.mode === "dense" ? "cosine similarity" : S.mode === "bm25" ? "BM25 score" : "fused score"}">${score(i)}</span></li>`).join("");
+  $("sandwich").textContent = `Answer the question using only the notes below.\nIf the answer is not in the notes, say "I don't know".\n\nNotes:\n${top.map((i, r) => `[${r + 1}] ${D.notes[i].text}`).join("\n")}\n\nQuestion: ${q.q}`;
+}
+
+D.questions.forEach((q, i) => {
+  const b = document.createElement("button");
+  b.className = "chip"; b.textContent = q.q; b.setAttribute("aria-pressed", i === 0);
+  b.onclick = () => { S.q = i; S.broken = false; $("break").setAttribute("aria-pressed", "false");
+    document.querySelectorAll("#qs .chip").forEach((c, j) => c.setAttribute("aria-pressed", j === i)); render(); };
+  $("qs").appendChild(b);
+});
+document.querySelectorAll("#modes button").forEach(b => b.onclick = () => {
+  S.mode = b.dataset.mode; S.rr = false; $("rr").checked = false;
+  document.querySelectorAll("#modes button").forEach(x => x.setAttribute("aria-pressed", x === b)); render(); });
+$("k").oninput = e => { S.k = +e.target.value; render(); };
+$("rr").onchange = e => { S.rr = e.target.checked; if (S.rr) { S.mode = "dense";
+  document.querySelectorAll("#modes button").forEach(x => x.setAttribute("aria-pressed", x.dataset.mode === "dense")); } render(); };
+$("break").onclick = () => { S.broken = !S.broken; $("break").setAttribute("aria-pressed", S.broken);
+  $("break").textContent = S.broken ? "Put the card back" : "Tear out the right card"; render(); };
+const lv = pro => { S.pro = pro; $("lvl-kid").setAttribute("aria-pressed", !pro); $("lvl-pro").setAttribute("aria-pressed", pro); render(); };
+$("lvl-kid").onclick = () => lv(false); $("lvl-pro").onclick = () => lv(true);
+$("copy").onclick = async () => { try { await navigator.clipboard.writeText($("sandwich").textContent); $("copy").textContent = "Copied"; }
+  catch (e) { $("copy").textContent = "Select the text to copy"; } setTimeout(() => $("copy").textContent = "Copy prompt", 1800); };
+render();
+</script>
+</body>
+</html>
